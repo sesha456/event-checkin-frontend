@@ -206,8 +206,8 @@ export default function Dashboard() {
         <section style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }} className="card">
 
           {/* HEADER */}
-          <div className="dashboard-header page-header" style={{ flexDirection: "column", alignItems: "flex-start", gap: "10px" }}>
-            <h1>🎯 Event Check-in Dashboard</h1>
+          <div className="dashboard-header page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+            <h1 style={{ margin: 0 }}>🎯 Event Check-in Dashboard</h1>
             <div className="header-actions" style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
               <input type="file" accept=".xlsx,.csv" onChange={(e) => setFile(e.target.files[0])} />
               <button className="primary-btn" onClick={handleUpload}>Upload</button>
