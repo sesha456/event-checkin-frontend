@@ -1,4 +1,4 @@
-const BASE_URL = "http://127.0.0.1:5000";
+const BASE_URL = "https://event-checkin-backend-vre4.onrender.com"
 
 export async function getAttendees() {
   const res = await fetch(`${BASE_URL}/attendees`);
@@ -12,7 +12,6 @@ export async function getStats() {
   return res.json();
 }
 
-// ✅ Fixed — POST with JSON body
 export async function manualCheckIn(contact) {
   const res = await fetch(`${BASE_URL}/manual_checkin`, {
     method: "POST",
@@ -47,11 +46,9 @@ export async function uploadExcel(file) {
 
 export async function walkInCheckIn(data) {
   try {
-    const res = await fetch("http://localhost:5000/api/walkin", {
+    const res = await fetch(`${BASE_URL}/api/walkin`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
 
