@@ -8,6 +8,8 @@ import {
   walkInCheckIn
 } from "../services/api";
 
+const isMobile = window.innerWidth <= 768;
+
 export default function Dashboard() {
   const [attendees, setAttendees] = useState([]);
   const [stats, setStats] = useState({ total: 0, inside: 0, checked_out: 0, not_arrived: 0 });
@@ -75,6 +77,7 @@ export default function Dashboard() {
       alert(err.message || "Check-out failed");
     }
   }
+
   const handleVolunteerUpload = async () => {
     if (!volunteerFile) return alert("Select volunteer file");
     const formData = new FormData();
@@ -92,6 +95,7 @@ export default function Dashboard() {
       alert("Failed: " + data.message);
     }
   };
+
   const handleUpload = async () => {
     if (!file) { alert("Please select file"); return; }
     const res = await uploadExcel(file);
@@ -124,15 +128,87 @@ export default function Dashboard() {
     return                                     { label: "Not Arrived", cls: "status-badge pending" };
   };
 
+  // Mobile card view for each attendee
+  const MobileCard = ({ a }) => {
+    const { label, cls } = getStatus(a);
+    return (
+      <div style={{
+        background: a.is_volunteer ? "#1a3a2a" : "#1e2433",
+        borderLeft: a.is_volunteer ? "3px solid #22c55e" : "3px solid transparent",
+        borderRadius: "8px",
+        padding: "12px",
+        marginBottom: "10px"
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
+          <div>
+            <span style={{ fontWeight: "600", fontSize: "15px", color: "#fff" }}>{a.name}</span>
+            {a.is_volunteer && (
+              <span style={{
+                display: "inline-block", marginLeft: "6px",
+                background: "#166534", color: "#bbf7d0",
+                fontSize: "11px", padding: "2px 7px",
+                borderRadius: "10px", fontWeight: 600
+              }}>🙋 Volunteer</span>
+            )}
+          </div>
+          <span className={cls}>{label}</span>
+        </div>
+        <div style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "4px" }}>{a.contact}</div>
+        <div style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "8px" }}>
+          ID: {a.student_id === a.contact ? "—" : a.student_id}
+          {a.checkin_time && <span style={{ marginLeft: "10px" }}>In: {new Date(a.checkin_time).toLocaleTimeString()}</span>}
+          {a.checkout_time && <span style={{ marginLeft: "10px" }}>Out: {new Date(a.checkout_time).toLocaleTimeString()}</span>}
+        </div>
+        <div>
+          {!a.checked_in && (
+            <button className="primary-btn" onClick={() => handleCheckIn(a.contact)}>Check In</button>
+          )}
+          {a.checked_in && !a.checked_out && (
+            <button className="warning-btn" onClick={() => handleCheckOut(a.contact)}>Check Out</button>
+          )}
+          {a.checked_out && (
+            <button className="primary-btn" onClick={() => handleCheckIn(a.contact)}>Re-enter</button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
-      <main style={{ padding: "20px", width: "100%", boxSizing: "border-box" }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .dashboard-header h1 {
+            font-size: 20px !important;
+            margin-bottom: 10px !important;
+          }
+          .header-actions {
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+          }
+          .header-actions input[type="file"] {
+            max-width: 130px !important;
+            font-size: 12px !important;
+          }
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .toolbar {
+            flex-direction: column !important;
+          }
+          .toolbar select {
+            width: 100% !important;
+          }
+        }
+      `}</style>
+
+      <main style={{ padding: "16px", width: "100%", boxSizing: "border-box" }}>
         <section style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }} className="card">
 
           {/* HEADER */}
-          <div className="page-header">
+          <div className="dashboard-header page-header" style={{ flexDirection: "column", alignItems: "flex-start", gap: "10px" }}>
             <h1>🎯 Event Check-in Dashboard</h1>
-            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <div className="header-actions" style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
               <input type="file" accept=".xlsx,.csv" onChange={(e) => setFile(e.target.files[0])} />
               <button className="primary-btn" onClick={handleUpload}>Upload</button>
               <button className="secondary-btn" onClick={loadData}>Refresh</button>
@@ -143,7 +219,7 @@ export default function Dashboard() {
           </div>
 
           {/* STATS */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "20px" }}>
+          <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "20px" }}>
             <div className="stat-box">
               <span className="stat-label">Total</span>
               <span className="stat-value">{stats.total}</span>
@@ -187,8 +263,8 @@ export default function Dashboard() {
           {loading && <p className="info-text">Loading attendees...</p>}
           {error && <p className="error-text">{error}</p>}
 
-          {/* TABLE */}
-          {!loading && !error && (
+          {/* TABLE — desktop only */}
+          {!loading && !error && !isMobile && (
             <div style={{ width: "100%", overflowX: "auto" }}>
               <table style={{ width: "100%", tableLayout: "fixed" }} className="attendee-table">
                 <colgroup>
@@ -229,17 +305,11 @@ export default function Dashboard() {
                             {a.name}
                             {a.is_volunteer && (
                               <span style={{
-                                display: "inline-block",
-                                marginLeft: "6px",
-                                background: "#166534",
-                                color: "#bbf7d0",
-                                fontSize: "11px",
-                                padding: "2px 7px",
-                                borderRadius: "10px",
-                                fontWeight: 600
-                              }}>
-                                🙋 Volunteer
-                              </span>
+                                display: "inline-block", marginLeft: "6px",
+                                background: "#166534", color: "#bbf7d0",
+                                fontSize: "11px", padding: "2px 7px",
+                                borderRadius: "10px", fontWeight: 600
+                              }}>🙋 Volunteer</span>
                             )}
                           </td>
                           <td style={{ wordBreak: "break-all", fontSize: "13px" }}>{a.contact}</td>
@@ -251,19 +321,13 @@ export default function Dashboard() {
                           <td><span className={cls}>{label}</span></td>
                           <td>
                             {!a.checked_in && (
-                              <button className="primary-btn" onClick={() => handleCheckIn(a.contact)}>
-                                Check In
-                              </button>
+                              <button className="primary-btn" onClick={() => handleCheckIn(a.contact)}>Check In</button>
                             )}
                             {a.checked_in && !a.checked_out && (
-                              <button className="warning-btn" onClick={() => handleCheckOut(a.contact)}>
-                                Check Out
-                              </button>
+                              <button className="warning-btn" onClick={() => handleCheckOut(a.contact)}>Check Out</button>
                             )}
                             {a.checked_out && (
-                              <button className="primary-btn" onClick={() => handleCheckIn(a.contact)}>
-                                Re-enter
-                              </button>
+                              <button className="primary-btn" onClick={() => handleCheckIn(a.contact)}>Re-enter</button>
                             )}
                           </td>
                         </tr>
@@ -275,94 +339,99 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* CARDS — mobile only */}
+          {!loading && !error && isMobile && (
+            <div>
+              {filteredAttendees.length === 0 ? (
+                <p className="empty-cell">No attendees found</p>
+              ) : (
+                filteredAttendees.map((a) => <MobileCard key={a.contact} a={a} />)
+              )}
+            </div>
+          )}
+
         </section>
       </main>
 
       {/* WALK-IN MODAL */}
-{showWalkIn && (
-  <div style={{
-    position: "fixed", inset: 0,
-    background: "rgba(0,0,0,0.6)",
-    display: "flex", justifyContent: "center", alignItems: "center",
-    zIndex: 1000
-  }}>
-    <div style={{
-      background: "#1e2433",
-      borderRadius: "12px",
-      padding: "32px",
-      width: "400px",
-      boxShadow: "0 20px 60px rgba(0,0,0,0.5)"
-    }}>
-      <h3 style={{ margin: "0 0 24px 0", fontSize: "22px", fontWeight: "700", color: "#fff" }}>
-        Walk-in Registration
-      </h3>
-
-      <input
-        placeholder="Name"
-        value={walkInData.name}
-        onChange={(e) => setWalkInData({ ...walkInData, name: e.target.value })}
-        style={{
-          display: "block", width: "100%", marginBottom: "12px",
-          padding: "12px 16px", borderRadius: "8px",
-          background: "#2a3347", border: "1px solid #3a4460",
-          color: "#fff", fontSize: "15px", boxSizing: "border-box",
-          outline: "none"
-        }}
-      />
-
-      <input
-        placeholder="Email"
-        value={walkInData.email}
-        onChange={(e) => setWalkInData({ ...walkInData, email: e.target.value })}
-        style={{
-          display: "block", width: "100%", marginBottom: "12px",
-          padding: "12px 16px", borderRadius: "8px",
-          background: "#2a3347", border: "1px solid #3a4460",
-          color: "#fff", fontSize: "15px", boxSizing: "border-box",
-          outline: "none"
-        }}
-      />
-
-      <input
-        placeholder="Student ID / Phone"
-        value={walkInData.student_id}
-        onChange={(e) => setWalkInData({ ...walkInData, student_id: e.target.value })}
-        style={{
-          display: "block", width: "100%", marginBottom: "24px",
-          padding: "12px 16px", borderRadius: "8px",
-          background: "#2a3347", border: "1px solid #3a4460",
-          color: "#fff", fontSize: "15px", boxSizing: "border-box",
-          outline: "none"
-        }}
-      />
-
-      <div style={{ display: "flex", gap: "10px" }}>
-        <button
-          onClick={handleWalkInSubmit}
-          style={{
-            flex: 1, padding: "12px",
-            background: "#2563eb", color: "#fff",
-            border: "none", borderRadius: "8px",
-            fontSize: "15px", fontWeight: "600", cursor: "pointer"
-          }}
-        >
-          Register & Check-in
-        </button>
-        <button
-          onClick={() => setShowWalkIn(false)}
-          style={{
-            padding: "12px 20px",
-            background: "#2a3347", color: "#fff",
-            border: "1px solid #3a4460", borderRadius: "8px",
-            fontSize: "15px", cursor: "pointer"
-          }}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      {showWalkIn && (
+        <div style={{
+          position: "fixed", inset: 0,
+          background: "rgba(0,0,0,0.6)",
+          display: "flex", justifyContent: "center", alignItems: "center",
+          zIndex: 1000, padding: "16px", boxSizing: "border-box"
+        }}>
+          <div style={{
+            background: "#1e2433",
+            borderRadius: "12px",
+            padding: "32px",
+            width: "100%",
+            maxWidth: "400px",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.5)"
+          }}>
+            <h3 style={{ margin: "0 0 24px 0", fontSize: "22px", fontWeight: "700", color: "#fff" }}>
+              Walk-in Registration
+            </h3>
+            <input
+              placeholder="Name"
+              value={walkInData.name}
+              onChange={(e) => setWalkInData({ ...walkInData, name: e.target.value })}
+              style={{
+                display: "block", width: "100%", marginBottom: "12px",
+                padding: "12px 16px", borderRadius: "8px",
+                background: "#2a3347", border: "1px solid #3a4460",
+                color: "#fff", fontSize: "15px", boxSizing: "border-box", outline: "none"
+              }}
+            />
+            <input
+              placeholder="Email"
+              value={walkInData.email}
+              onChange={(e) => setWalkInData({ ...walkInData, email: e.target.value })}
+              style={{
+                display: "block", width: "100%", marginBottom: "12px",
+                padding: "12px 16px", borderRadius: "8px",
+                background: "#2a3347", border: "1px solid #3a4460",
+                color: "#fff", fontSize: "15px", boxSizing: "border-box", outline: "none"
+              }}
+            />
+            <input
+              placeholder="Student ID / Phone"
+              value={walkInData.student_id}
+              onChange={(e) => setWalkInData({ ...walkInData, student_id: e.target.value })}
+              style={{
+                display: "block", width: "100%", marginBottom: "24px",
+                padding: "12px 16px", borderRadius: "8px",
+                background: "#2a3347", border: "1px solid #3a4460",
+                color: "#fff", fontSize: "15px", boxSizing: "border-box", outline: "none"
+              }}
+            />
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                onClick={handleWalkInSubmit}
+                style={{
+                  flex: 1, padding: "12px",
+                  background: "#2563eb", color: "#fff",
+                  border: "none", borderRadius: "8px",
+                  fontSize: "15px", fontWeight: "600", cursor: "pointer"
+                }}
+              >
+                Register & Check-in
+              </button>
+              <button
+                onClick={() => setShowWalkIn(false)}
+                style={{
+                  padding: "12px 20px",
+                  background: "#2a3347", color: "#fff",
+                  border: "1px solid #3a4460", borderRadius: "8px",
+                  fontSize: "15px", cursor: "pointer"
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
