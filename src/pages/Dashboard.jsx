@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [file, setFile] = useState(null);
+  const [volunteerFile, setVolunteerFile] = useState(null);
 
   const [showWalkIn, setShowWalkIn] = useState(false);
   const [walkInData, setWalkInData] = useState({ name: "", email: "", student_id: "" });
@@ -74,7 +75,23 @@ export default function Dashboard() {
       alert(err.message || "Check-out failed");
     }
   }
-
+  const handleVolunteerUpload = async () => {
+    if (!volunteerFile) return alert("Select volunteer file");
+    const formData = new FormData();
+    formData.append("file", volunteerFile);
+    const res = await fetch("https://event-checkin-backend-vre4.onrender.com/upload_volunteers", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    if (data.status === "success") {
+      alert(`Loaded ${data.loaded} volunteers!`);
+      setVolunteerFile(null);
+      loadData();
+    } else {
+      alert("Failed: " + data.message);
+    }
+  };
   const handleUpload = async () => {
     if (!file) { alert("Please select file"); return; }
     const res = await uploadExcel(file);
@@ -120,6 +137,8 @@ export default function Dashboard() {
               <button className="primary-btn" onClick={handleUpload}>Upload</button>
               <button className="secondary-btn" onClick={loadData}>Refresh</button>
               <button className="primary-btn" onClick={() => setShowWalkIn(true)}>+ Walk-in</button>
+              <input type="file" accept=".xlsx" onChange={(e) => setVolunteerFile(e.target.files[0])} />
+              <button className="primary-btn" onClick={handleVolunteerUpload}>Upload Volunteers</button>
             </div>
           </div>
 
