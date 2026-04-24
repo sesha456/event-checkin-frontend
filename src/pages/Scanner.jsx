@@ -8,7 +8,7 @@ export default function Scanner() {
 
   const [message, setMessage] = useState("Starting scanner...");
   const [status, setStatus] = useState("info");
-  const [action, setAction] = useState(null); // "checked_in" | "checked_out" | "already_checked_in"
+  const [action, setAction] = useState(null);
 
   useEffect(() => {
     let qr;
@@ -18,15 +18,8 @@ export default function Scanner() {
         qr = new Html5Qrcode("reader");
         qrRef.current = qr;
 
-        const devices = await Html5Qrcode.getCameras();
-        if (!devices.length) {
-          setStatus("error");
-          setMessage("No camera found ❌");
-          return;
-        }
-
         await qr.start(
-          devices[0].id,
+          { facingMode: "environment" },
           { fps: 10, qrbox: 250 },
           async (decodedText) => {
             if (!isRunning.current) return;
@@ -40,7 +33,6 @@ export default function Scanner() {
               const data = await qrCheckInFromUrl(decodedText);
               setAction(data.action);
 
-              // ── Status color based on action ──
               if (data.action === "checked_in" || data.action === "checked_in_again") {
                 setStatus("success");
                 new Audio("https://www.soundjay.com/buttons/sounds/button-3.mp3").play();
@@ -49,7 +41,6 @@ export default function Scanner() {
                 new Audio("https://www.soundjay.com/buttons/sounds/button-09.mp3").play();
               } else if (data.action === "already_checked_in") {
                 setStatus("error");
-                // no sound — just show warning
               }
 
               setMessage(data.message);
@@ -97,7 +88,6 @@ export default function Scanner() {
           </div>
 
           <div className="scanner-help">
-            {/* ── Big action banner ── */}
             {action && (
               <div className={`action-banner ${
                 action === "checked_in" || action === "checked_in_again" ? "banner-success" :
